@@ -43,7 +43,11 @@ func TestGetNode(t *testing.T) {
 
 	assert.NotEmpty(t, node, "GetNode should return a non-empty node for key '%s'", key)
 
-	hashRing.RemoveNode("node2")
+	err := hashRing.RemoveNode("node2")
+	assert.Nil(t, err, "Remove Node returned an error")
+
+	err = hashRing.RemoveNode("node9999")
+	assert.Error(t, err, "Remove non exixtent node should return an error")
 
 	newNode := hashRing.GetNode(key)
 
@@ -54,7 +58,7 @@ func TestGetNode(t *testing.T) {
 func TestChangeHashFunction(t *testing.T) {
 	numTimesHashCalled := 0
 
-	customHashFunction := func(key hashKey) uint32 {
+	customHashFunction := func(key string) uint32 {
 		hash := uint32(0)
 		for _, char := range key {
 			hash += uint32(char)

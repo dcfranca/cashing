@@ -8,8 +8,7 @@ import (
 	"sync"
 )
 
-type hashKey string
-type hashFunction func(hashKey) uint32
+type hashFunction func(string) uint32
 
 type HashRing struct {
 	nodes    []uint32
@@ -36,42 +35,56 @@ func NewHashRing(replicas int, hash hashFunction) *HashRing {
 	}
 }
 
-func defaultHashFunction(key hashKey) uint32 {
+func defaultHashFunction(key string) uint32 {
 	hash := sha1.New()
 	hash.Write([]byte(key))
 	hashBytes := hash.Sum(nil)
 	return binary.BigEndian.Uint32(hashBytes)
 }
 
+// Add a node to the hash ring
+// the node parameter is just a string identifier, i.e: node1
 func (hr *HashRing) AddNode(node string) {
 	hr.mutex.Lock()
 	defer hr.mutex.Unlock()
 
 	for i := 0; i < hr.replicas; i++ {
 		replicaKey := fmt.Sprintf("%s-%d", node, i)
-		hash := hr.hash(hashKey(replicaKey))
+		hash := hr.hash(replicaKey)
 		hr.nodes = append(hr.nodes, hash)
 		hr.nodesMap[hash] = node
 	}
 	sort.Slice(hr.nodes, func(i, j int) bool { return hr.nodes[i] < hr.nodes[j] })
 }
 
-func (hr *HashRing) RemoveNode(node string) {
+// Remove a node from the hash ring
+// Returns an error in case the node is not found
+// The node parameter is the node string identifier
+func (hr *HashRing) RemoveNode(node string) error {
 	hr.mutex.Lock()
 	defer hr.mutex.Unlock()
+	deleted := false
 
 	for i := 0; i < hr.replicas; i++ {
 		replicaKey := fmt.Sprintf("%s-%d", node, i)
-		hash := hr.hash(hashKey(replicaKey))
+		hash := hr.hash(replicaKey)
 		index := sort.Search(len(hr.nodes), func(i int) bool { return hr.nodes[i] >= hash })
 		if index < len(hr.nodes) && hr.nodes[index] == hash {
 			// Remove the node found
 			hr.nodes = append(hr.nodes[:index], hr.nodes[index+1:]...)
 			delete(hr.nodesMap, hash)
+			deleted = true
 		}
 	}
+
+	if !deleted {
+		return fmt.Errorf("node not found")
+	}
+
+	return nil
 }
 
+// Get the node associated with the key
 func (hr *HashRing) GetNode(key string) string {
 	hr.mutex.RLock()
 	defer hr.mutex.RUnlock()
@@ -80,7 +93,7 @@ func (hr *HashRing) GetNode(key string) string {
 		return ""
 	}
 
-	hash := hr.hash(hashKey(key))
+	hash := hr.hash(key)
 	// The first node that has a key > than the key being searched for is the node with the key stored
 	index := sort.Search(len(hr.nodes), func(i int) bool { return hr.nodes[i] >= hash })
 
