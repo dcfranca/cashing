@@ -11,9 +11,10 @@ go get -u github.com/dcfranca/cashing
 # Usage
 
 Create a new hash ring with 3 replicas (virtual nodes) and the default hash function
+The NodeType must implement the Stringer interface
 
 ```
-	hashRing := NewHashRing(3, nil)
+	hashRing := NewHashRing[NodeType](3, nil)
 ```
 
 Add 3 nodes to it
@@ -24,7 +25,7 @@ Add 3 nodes to it
 	hashRing.AddNode("node3")
 ```
 
-Get the node to store your data
+Get the node to store your data, it returns a pointer to your NodeType
 
 ```
 	key := "foobar"
@@ -52,5 +53,5 @@ Use a custom hash function
 		return hash
 	}
 
-	hashRing := NewHashRing(1, customHashFunction)
+	hashRing := NewHashRing[NodeType](1, customHashFunction)
 ```

@@ -6,8 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type CustomString string
+
+func (cs CustomString) String() string {
+	return string(cs)
+}
+
 func TestAddNode(t *testing.T) {
-	hashRing := NewHashRing(3, nil)
+	hashRing := NewHashRing[CustomString](3, nil)
 
 	hashRing.AddNode("node1")
 	hashRing.AddNode("node2")
@@ -17,7 +23,7 @@ func TestAddNode(t *testing.T) {
 }
 
 func TestRemoveNode(t *testing.T) {
-	hashRing := NewHashRing(3, nil)
+	hashRing := NewHashRing[CustomString](3, nil)
 
 	hashRing.AddNode("node1")
 	hashRing.AddNode("node2")
@@ -32,7 +38,7 @@ func TestRemoveNode(t *testing.T) {
 }
 
 func TestGetNode(t *testing.T) {
-	hashRing := NewHashRing(3, nil)
+	hashRing := NewHashRing[CustomString](3, nil)
 
 	hashRing.AddNode("node1")
 	hashRing.AddNode("node2")
@@ -67,7 +73,7 @@ func TestChangeHashFunction(t *testing.T) {
 		return hash
 	}
 
-	hashRing := NewHashRing(1, customHashFunction)
+	hashRing := NewHashRing[CustomString](1, customHashFunction)
 
 	hashRing.AddNode("node1")
 	hashRing.AddNode("node2")

@@ -10,9 +10,9 @@ import (
 
 type hashFunction func(string) uint32
 
-type HashRing struct {
+type HashRing[T fmt.Stringer] struct {
 	nodes    []uint32
-	nodesMap map[uint32]string
+	nodesMap map[uint32]*T
 	replicas int
 	mutex    sync.RWMutex
 	hash     hashFunction
@@ -21,14 +21,14 @@ type HashRing struct {
 // Instantiate a new Hash Ring
 // You can define your own hash function or
 // pass nil to use the default one: sha1
-func NewHashRing(replicas int, hash hashFunction) *HashRing {
+func NewHashRing[T fmt.Stringer](replicas int, hash hashFunction) *HashRing[T] {
 	if hash == nil {
 		hash = defaultHashFunction
 	}
 
-	return &HashRing{
+	return &HashRing[T]{
 		nodes:    make([]uint32, 0),
-		nodesMap: make(map[uint32]string),
+		nodesMap: make(map[uint32]*T),
 		replicas: replicas,
 		mutex:    sync.RWMutex{},
 		hash:     hash,
@@ -44,7 +44,7 @@ func defaultHashFunction(key string) uint32 {
 
 // Add a node to the hash ring
 // the node parameter is just a string identifier, i.e: node1
-func (hr *HashRing) AddNode(node string) {
+func (hr *HashRing[T]) AddNode(node T) {
 	hr.mutex.Lock()
 	defer hr.mutex.Unlock()
 
@@ -52,7 +52,7 @@ func (hr *HashRing) AddNode(node string) {
 		replicaKey := fmt.Sprintf("%s-%d", node, i)
 		hash := hr.hash(replicaKey)
 		hr.nodes = append(hr.nodes, hash)
-		hr.nodesMap[hash] = node
+		hr.nodesMap[hash] = &node
 	}
 	sort.Slice(hr.nodes, func(i, j int) bool { return hr.nodes[i] < hr.nodes[j] })
 }
@@ -60,7 +60,7 @@ func (hr *HashRing) AddNode(node string) {
 // Remove a node from the hash ring
 // Returns an error in case the node is not found
 // The node parameter is the node string identifier
-func (hr *HashRing) RemoveNode(node string) error {
+func (hr *HashRing[T]) RemoveNode(node string) error {
 	hr.mutex.Lock()
 	defer hr.mutex.Unlock()
 	deleted := false
@@ -85,12 +85,12 @@ func (hr *HashRing) RemoveNode(node string) error {
 }
 
 // Get the node associated with the key
-func (hr *HashRing) GetNode(key string) string {
+func (hr *HashRing[T]) GetNode(key string) *T {
 	hr.mutex.RLock()
 	defer hr.mutex.RUnlock()
 
 	if len(hr.nodes) == 0 {
-		return ""
+		return nil
 	}
 
 	hash := hr.hash(key)
