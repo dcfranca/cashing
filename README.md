@@ -14,6 +14,12 @@ Create a new hash ring with 3 replicas (virtual nodes) and the default hash func
 The NodeType must implement the Stringer interface
 
 ```
+	type NodeType string
+
+	func (nt NodeType) String() string {
+		return string(nt)
+	}
+
 	hashRing := NewHashRing[NodeType](3, nil)
 ```
 
