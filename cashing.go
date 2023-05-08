@@ -43,7 +43,7 @@ func defaultHashFunction(key string) uint32 {
 }
 
 // Add a node to the hash ring
-// the node parameter is just a string identifier, i.e: node1
+// The node parameter is a defined node type (must implement Stringer interface)
 func (hr *HashRing[T]) AddNode(node T) {
 	hr.mutex.Lock()
 	defer hr.mutex.Unlock()
@@ -59,8 +59,8 @@ func (hr *HashRing[T]) AddNode(node T) {
 
 // Remove a node from the hash ring
 // Returns an error in case the node is not found
-// The node parameter is the node string identifier
-func (hr *HashRing[T]) RemoveNode(node string) error {
+// The node parameter is a defined node type (must implement Stringer interface)
+func (hr *HashRing[T]) RemoveNode(node T) error {
 	hr.mutex.Lock()
 	defer hr.mutex.Unlock()
 	deleted := false
