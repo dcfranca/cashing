@@ -70,7 +70,7 @@ func TestChangeHashFunction(t *testing.T) {
 			hash += uint32(char)
 		}
 		numTimesHashCalled++
-		return hash
+		return hash % 10
 	}
 
 	hashRing := NewHashRing[CustomString](1, customHashFunction)
